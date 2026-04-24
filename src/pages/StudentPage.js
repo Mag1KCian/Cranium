@@ -34,10 +34,12 @@ function StudentPage() {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <button style={styles.backButton} onClick={() => navigate('/')}>
-          ← Back
-        </button>
-        <span style={styles.badge}>Student Portal</span>
+        <div style={styles.headerLeft}>
+          <button style={styles.backButton} onClick={() => navigate('/')}>
+            ← Back
+          </button>
+          <h1 style={styles.headerTitle}>Student Portal</h1>
+        </div>
       </div>
       
       <div style={styles.card}>
@@ -142,13 +144,16 @@ const styles = {
     borderRadius: '8px',
     cursor: 'pointer',
   },
-  badge: {
-    padding: '6px 16px',
-    backgroundColor: '#4F46E5',
-    color: '#fff',
-    borderRadius: '20px',
-    fontSize: '12px',
-    fontWeight: '600',
+  headerLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '24px',
+  },
+  headerTitle: {
+    fontSize: '24px',
+    fontWeight: '700',
+    color: '#222222',
+    margin: 0,
   },
   card: {
     maxWidth: '1200px',

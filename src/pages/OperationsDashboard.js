@@ -103,15 +103,21 @@ function OperationsDashboard() {
   }, []);
 
   // Camera function - access PC camera
-  const openCamera = async (roomName) => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      setCameraStream({ room: roomName, stream });
-      // In a real app, you'd display this in a modal or video element
-      alert(`Camera opened for ${roomName}. In production, this would show a live video feed.`);
-    } catch (err) {
-      console.error('Camera access error:', err);
-      alert('Unable to access camera. Please check permissions.');
+  const toggleCamera = async (roomName) => {
+    if (cameraStream && cameraStream.room === roomName) {
+      cameraStream.stream.getTracks().forEach(t => t.stop());
+      setCameraStream(null);
+    } else {
+      if (cameraStream) {
+        cameraStream.stream.getTracks().forEach(t => t.stop());
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setCameraStream({ room: roomName, stream });
+      } catch (err) {
+        console.error('Camera access error:', err);
+        alert('Unable to access camera. Please check permissions.');
+      }
     }
   };
 
@@ -119,6 +125,15 @@ function OperationsDashboard() {
   const toggleComponents = (roomId) => {
     setExpandedRoom(expandedRoom === roomId ? null : roomId);
   };
+
+  // Cleanup camera stream on unmount
+  useEffect(() => {
+    return () => {
+      if (cameraStream) {
+        cameraStream.stream.getTracks().forEach(t => t.stop());
+      }
+    };
+  }, [cameraStream]);
 
   // Fetch weather data
   useEffect(() => {
@@ -159,10 +174,10 @@ function OperationsDashboard() {
       {/* Header */}
       <header style={styles.header}>
         <div style={styles.headerLeft}>
-          <h1 style={styles.headerTitle}>Project Thermal Grid</h1>
-          <button style={styles.portalButton} onClick={() => navigate('/student')}>
-            Student Portal
+          <button style={styles.backButton} onClick={() => navigate('/')}>
+            ← Back
           </button>
+          <h1 style={styles.headerTitle}>Admin Portal</h1>
         </div>
         <div style={styles.headerRight}>
           <div style={styles.clock}>{currentTime || '00:00:00'}</div>
@@ -223,9 +238,31 @@ function OperationsDashboard() {
                       </span>
                     </div>
                     <div style={styles.roomActions}>
-                      <button style={styles.actionButton}>Camera</button>
-                      <button style={styles.actionButton}>Components</button>
+                  <button style={styles.actionButton} onClick={() => toggleCamera(room.name)}>
+                    {cameraStream?.room === room.name ? 'Close Camera' : 'Camera'}
+                  </button>
+                  <button style={styles.actionButton} onClick={() => toggleComponents(room.id)}>
+                    {expandedRoom === room.id ? 'Hide Components' : 'Components'}
+                  </button>
                     </div>
+                {cameraStream && cameraStream.room === room.name && (
+                  <video
+                    ref={el => { if (el && !el.srcObject) el.srcObject = cameraStream.stream; }}
+                    autoPlay
+                    playsInline
+                    style={styles.videoStream}
+                  />
+                )}
+                {expandedRoom === room.id && (
+                  <div style={styles.componentsDropdown}>
+                    {room.components.map((comp, idx) => (
+                      <div key={idx} style={styles.componentItem}>
+                        <span>{comp.name}</span>
+                        <span style={styles.componentPower}>{comp.power}W</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                   </div>
                 ))}
               </div>
@@ -363,22 +400,21 @@ const styles = {
     alignItems: 'center',
     gap: '24px',
   },
+  backButton: {
+    padding: '8px 16px',
+    fontSize: '14px',
+    backgroundColor: '#f1f5f9',
+    border: '1px solid #e2e8f0',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    color: '#1e293b',
+    fontWeight: '600',
+  },
   headerTitle: {
     fontSize: '24px',
     fontWeight: '700',
     color: '#1e293b',
     margin: 0,
-  },
-  portalButton: {
-    padding: '10px 20px',
-    backgroundColor: '#7c3aed',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s',
   },
   headerRight: {
     textAlign: 'right',
@@ -522,6 +558,30 @@ const styles = {
     fontSize: '12px',
     fontWeight: '600',
     cursor: 'pointer',
+  },
+  videoStream: {
+    width: '100%',
+    marginTop: '12px',
+    borderRadius: '8px',
+    backgroundColor: '#000',
+  },
+  componentsDropdown: {
+    marginTop: '12px',
+    backgroundColor: '#ffffff',
+    border: '1px solid #e2e8f0',
+    borderRadius: '8px',
+    padding: '8px',
+  },
+  componentItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    padding: '6px 4px',
+    fontSize: '13px',
+    borderBottom: '1px solid #f1f5f9',
+  },
+  componentPower: {
+    fontWeight: '600',
+    color: '#0d9488',
   },
   alertList: {
     display: 'flex',
