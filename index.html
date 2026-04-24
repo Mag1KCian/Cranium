@@ -57,8 +57,8 @@
         <section class="grid grid-cols-1 md:grid-cols-3 gap-6" aria-label="Key Performance Indicators">
             <article class="card p-6">
                 <h2 class="text-xs font-bold text-gray-700 mb-2 uppercase tracking-widest">External Temp</h2>
-                <div class="text-4xl font-semibold tracking-tight">24.5°C</div>
-                <p class="text-sm text-emerald-800 font-semibold mt-3 bg-emerald-100 inline-block px-2.5 py-1 rounded-md">Optimal Range</p>
+                <div id="external-temp" class="text-4xl font-semibold tracking-tight">--</div>
+                <p id="weather-status" class="text-sm text-gray-700 font-semibold mt-3 bg-gray-100 inline-block px-2.5 py-1 rounded-md">Loading weather...</p>
             </article>
 
             <article class="card p-6">
@@ -97,8 +97,8 @@
                     <div class="flex justify-between items-end mb-2">
                         <div>
                             <span class="text-xs font-bold text-gray-700 uppercase tracking-widest block mb-1">Current Status</span>
-                            <span class="text-lg font-semibold text-[#008489] flex items-center gap-2">
-                                <span class="w-2.5 h-2.5 rounded-full bg-[#008489]" aria-hidden="true"></span> Pre-Cooling (Solar Surplus)
+                            <span id="precool-status" class="text-lg font-semibold text-[#008489] flex items-center gap-2">
+                                <span id="precool-indicator" class="w-2.5 h-2.5 rounded-full bg-[#008489]" aria-hidden="true"></span> Loading...
                             </span>
                         </div>
                         <div class="text-right">
@@ -218,6 +218,49 @@
         }
         setInterval(updateClock, 1000);
         updateClock();
+
+        async function loadPrecoolData() {
+            const weatherStatus = document.getElementById('weather-status');
+            const externalTemp = document.getElementById('external-temp');
+            const statusLabel = document.getElementById('precool-status');
+            try {
+                const response = await fetch('/precool');
+                const data = await response.json();
+
+                if (!response.ok || data.error) {
+                    throw new Error(data.error || 'Failed to fetch pre-cooling data');
+                }
+
+                if (typeof data.external_temp === 'number') {
+                    externalTemp.textContent = `${data.external_temp.toFixed(1)}°C`;
+                    weatherStatus.textContent = data.external_temp > 35 ? 'High heat forecast' : 'Optimal Range';
+                    weatherStatus.className = data.external_temp > 35
+                        ? 'text-sm text-amber-800 font-semibold mt-3 bg-amber-100 inline-block px-2.5 py-1 rounded-md'
+                        : 'text-sm text-emerald-800 font-semibold mt-3 bg-emerald-100 inline-block px-2.5 py-1 rounded-md';
+                } else {
+                    externalTemp.textContent = 'N/A';
+                    weatherStatus.textContent = 'Weather unavailable';
+                    weatherStatus.className = 'text-sm text-gray-700 font-semibold mt-3 bg-gray-100 inline-block px-2.5 py-1 rounded-md';
+                }
+
+                if (data.pre_cooling) {
+                    statusLabel.className = 'text-lg font-semibold text-[#008489] flex items-center gap-2';
+                    statusLabel.innerHTML = '<span id="precool-indicator" class="w-2.5 h-2.5 rounded-full bg-[#008489]" aria-hidden="true"></span> Pre-Cooling (Solar Surplus)';
+                } else {
+                    statusLabel.className = 'text-lg font-semibold text-gray-500 flex items-center gap-2';
+                    statusLabel.innerHTML = '<span id="precool-indicator" class="w-2.5 h-2.5 rounded-full bg-gray-400" aria-hidden="true"></span> HVAC Idle';
+                }
+            } catch (error) {
+                externalTemp.textContent = 'N/A';
+                weatherStatus.textContent = 'Backend unavailable';
+                weatherStatus.className = 'text-sm text-red-800 font-semibold mt-3 bg-red-100 inline-block px-2.5 py-1 rounded-md';
+                statusLabel.className = 'text-lg font-semibold text-red-700 flex items-center gap-2';
+                statusLabel.innerHTML = '<span id="precool-indicator" class="w-2.5 h-2.5 rounded-full bg-red-600" aria-hidden="true"></span> Connection Error';
+            }
+        }
+
+        loadPrecoolData();
+        setInterval(loadPrecoolData, 600000);
     </script>
 </body>
 </html>
