@@ -4,10 +4,54 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 // Mock data for rooms with high power consumption
 const mockRooms = [
-  { id: 1, name: 'Room 101', power: 4500, status: 'normal' },
-  { id: 2, name: 'Room 205', power: 3800, status: 'warning' },
-  { id: 3, name: 'Lab 301', power: 5200, status: 'danger' },
-  { id: 4, name: 'Room 102', power: 2900, status: 'normal' },
+  { 
+    id: 1, 
+    name: 'Room 101', 
+    power: 4500, 
+    status: 'normal',
+    components: [
+      { name: 'AC Unit 1', power: 1800 },
+      { name: 'Lights', power: 400 },
+      { name: 'Projector', power: 1200 },
+      { name: 'Outlets', power: 1100 }
+    ]
+  },
+  { 
+    id: 2, 
+    name: 'Room 205', 
+    power: 3800, 
+    status: 'warning',
+    components: [
+      { name: 'AC Unit 2', power: 1500 },
+      { name: 'Lights', power: 350 },
+      { name: 'Computer Lab', power: 950 },
+      { name: 'Outlets', power: 1000 }
+    ]
+  },
+  { 
+    id: 3, 
+    name: 'Lab 301', 
+    power: 5200, 
+    status: 'danger',
+    components: [
+      { name: 'AC Unit 3', power: 2200 },
+      { name: 'Lights', power: 500 },
+      { name: 'Lab Equipment', power: 1800 },
+      { name: 'Outlets', power: 700 }
+    ]
+  },
+  { 
+    id: 4, 
+    name: 'Room 102', 
+    power: 2900, 
+    status: 'normal',
+    components: [
+      { name: 'AC Unit 4', power: 1200 },
+      { name: 'Lights', power: 300 },
+      { name: 'Smart Board', power: 800 },
+      { name: 'Outlets', power: 600 }
+    ]
+  },
 ];
 
 // Mock data for fire hazard alerts
@@ -45,6 +89,8 @@ function OperationsDashboard() {
   const [wattageData, setWattageData] = useState(generateWattageData());
   const [weatherData, setWeatherData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [expandedRoom, setExpandedRoom] = useState(null);
+  const [cameraStream, setCameraStream] = useState(null);
 
   // Clock update
   useEffect(() => {
@@ -55,6 +101,24 @@ function OperationsDashboard() {
     const interval = setInterval(updateClock, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Camera function - access PC camera
+  const openCamera = async (roomName) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      setCameraStream({ room: roomName, stream });
+      // In a real app, you'd display this in a modal or video element
+      alert(`Camera opened for ${roomName}. In production, this would show a live video feed.`);
+    } catch (err) {
+      console.error('Camera access error:', err);
+      alert('Unable to access camera. Please check permissions.');
+    }
+  };
+
+  // Toggle component dropdown
+  const toggleComponents = (roomId) => {
+    setExpandedRoom(expandedRoom === roomId ? null : roomId);
+  };
 
   // Fetch weather data
   useEffect(() => {
