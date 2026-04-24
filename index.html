@@ -3,213 +3,221 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Thermal Grid | Dashboard</title>
+    <title>Project Thermal Grid | Building Management</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #F7F7F7; /* Soft off-white background */
-            color: #222222; /* High-contrast near-black for primary text */
+            font-family: 'Inter', sans-serif;
+            background-color: #F7F7F7; 
+            color: #222222; 
         }
         
-        /* Premium Minimalist Card Design */
         .card {
             background-color: #FFFFFF;
             border: 1px solid #EBEBEB;
-            border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
         }
 
-        /* Focus rings for WCAG keyboard navigation */
-        button:focus-visible {
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1.5rem;
+        }
+
+        /* Focus rings for keyboard navigation */
+        button:focus-visible, a:focus-visible {
             outline: 2px solid #222222;
             outline-offset: 2px;
         }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-8 md:pt-12 antialiased">
+<body class="min-h-screen p-4 md:p-8 antialiased">
 
-    <header class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4" role="banner">
+    <header class="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4" role="banner">
         <div>
-            <h1 class="text-3xl font-semibold tracking-tight text-[#222222]">Project Thermal Grid</h1>
-            <p class="text-gray-700 font-medium mt-1">Autonomous Climate Control</p>
+            <h1 class="text-3xl font-bold tracking-tight text-[#222222]">Project Thermal Grid</h1>
+            <p class="text-gray-700 font-medium mt-1">Building Operations & Load Management</p>
         </div>
         
         <div class="text-left md:text-right" aria-live="polite">
-            <time id="live-clock" class="text-2xl font-semibold tabular-nums text-[#222222]" aria-label="Current local time">00:00:00</time>
-            <div class="text-xs text-gray-700 font-medium uppercase tracking-wider mt-1">System Time Sync</div>
+            <time id="live-clock" class="text-2xl font-bold tabular-nums text-[#222222]" aria-label="Current local time">00:00:00</time>
+            <div class="text-xs text-gray-700 font-bold uppercase tracking-wider mt-1">System Time Sync</div>
         </div>
     </header>
 
-    <main class="max-w-6xl mx-auto space-y-8" role="main">
+    <main class="max-w-5xl mx-auto space-y-8" role="main">
         
         <section class="grid grid-cols-1 md:grid-cols-3 gap-6" aria-label="Key Performance Indicators">
             <article class="card p-6">
-                <h2 class="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wider">Current Temp</h2>
-                <div class="flex items-baseline gap-2">
-                    <span class="text-4xl font-semibold tracking-tight">24.5°C</span>
-                </div>
-                <p class="text-sm text-emerald-800 font-medium mt-2 bg-emerald-100 inline-block px-2 py-0.5 rounded-md">Optimal Range</p>
+                <h2 class="text-xs font-bold text-gray-700 mb-2 uppercase tracking-widest">External Temp</h2>
+                <div class="text-4xl font-semibold tracking-tight">24.5°C</div>
+                <p class="text-sm text-emerald-800 font-semibold mt-3 bg-emerald-100 inline-block px-2.5 py-1 rounded-md">Optimal Range</p>
             </article>
 
             <article class="card p-6">
-                <h2 class="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wider">Grid Status</h2>
-                <div class="flex items-center gap-3">
-                    <span class="text-4xl font-semibold tracking-tight text-[#008489]">Renewable</span>
-                </div>
-                <p class="text-sm text-gray-700 font-medium mt-2">Active load offset applied</p>
+                <h2 class="text-xs font-bold text-gray-700 mb-2 uppercase tracking-widest">Grid Status</h2>
+                <div class="text-4xl font-semibold tracking-tight text-[#008489]">Renewable</div>
+                <p class="text-sm text-gray-700 font-medium mt-3">Active load offset applied</p>
             </article>
 
             <article class="card p-6">
-                <h2 class="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wider">Carbon Prevented</h2>
-                <div class="flex items-baseline gap-2">
+                <h2 class="text-xs font-bold text-gray-700 mb-2 uppercase tracking-widest">Carbon Prevented</h2>
+                <div class="flex items-baseline gap-1">
                     <span class="text-4xl font-semibold tracking-tight">1,240</span>
                     <span class="text-lg text-gray-700 font-medium">kg</span>
                 </div>
-                <p class="text-sm text-gray-700 font-medium mt-2">Cumulative total</p>
+                <p class="text-sm text-gray-700 font-medium mt-3">Cumulative total</p>
             </article>
         </section>
 
-        <section class="card p-6 md:p-8" aria-labelledby="chart-heading">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                <h2 id="chart-heading" class="text-xl font-semibold">Power Demand vs. Renewable Threshold</h2>
-                
-                <div class="flex gap-4 text-sm font-medium" aria-hidden="true">
-                    <span class="flex items-center gap-2 text-emerald-800">
-                        <span class="w-3 h-3 rounded-full bg-emerald-200 border border-emerald-500"></span> Solar Array
-                    </span>
-                    <span class="flex items-center gap-2 text-red-800">
-                        <span class="w-3 h-3 rounded-full bg-red-200 border border-red-500"></span> Fossil Peaker
-                    </span>
-                </div>
-            </div>
+        <section class="space-y-6" aria-label="Detailed Building Management">
             
-            <div class="relative h-[350px] w-full">
-                <canvas id="thermalChart" role="img" aria-label="Line chart showing daily power demand peaking above the renewable threshold between 12:00 PM and 2:00 PM, and again at 6:00 PM."></canvas>
-            </div>
-        </section>
-
-        <section class="grid grid-cols-1 md:grid-cols-2 gap-6" aria-label="Monitored Buildings Status">
-            <article class="card p-6 flex flex-col justify-between items-start gap-4 hover:shadow-lg transition-shadow duration-200">
-                <div class="w-full">
-                    <div class="flex justify-between items-start w-full">
-                        <h3 class="text-lg font-semibold">UIET Academic Block</h3>
-                        <span class="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded-full uppercase tracking-wide">Academic</span>
+            <article class="card p-6 md:p-8">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-100 pb-5 mb-6 gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="hidden sm:flex w-12 h-12 bg-gray-50 rounded-xl items-center justify-center border border-gray-200" aria-hidden="true">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><path d="M9 22v-4h6v4"></path><path d="M8 6h.01"></path><path d="M16 6h.01"></path><path d="M12 6h.01"></path><path d="M12 10h.01"></path><path d="M12 14h.01"></path><path d="M16 10h.01"></path><path d="M16 14h.01"></path><path d="M8 10h.01"></path><path d="M8 14h.01"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#222222]">UIET Academic Block</h3>
+                            <p class="text-sm text-gray-600 font-medium mt-1">BLDG-01 • Sector 25, Panjab University</p>
+                        </div>
                     </div>
-                    <p class="text-sm text-gray-700 mt-2 line-clamp-2">Sector 25, Panjab University. HVAC currently operating in Pre-Cooling mode utilizing solar surplus.</p>
+                    <span class="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-bold rounded-md uppercase tracking-wider">Academic</span>
                 </div>
-                <button class="mt-2 px-5 py-2.5 bg-[#222222] text-white text-sm font-semibold rounded-lg hover:bg-black transition-colors w-full md:w-auto" aria-label="View detailed metrics for UIET Academic Block">
-                    View Metrics
-                </button>
+
+                <div class="mb-8">
+                    <div class="flex justify-between items-end mb-2">
+                        <div>
+                            <span class="text-xs font-bold text-gray-700 uppercase tracking-widest block mb-1">Current Status</span>
+                            <span class="text-lg font-semibold text-[#008489] flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-[#008489]" aria-hidden="true"></span> Pre-Cooling (Solar Surplus)
+                            </span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-3xl font-semibold tracking-tight">31 <span class="text-base text-gray-600 font-medium">kW</span></span>
+                            <p class="text-sm text-gray-600 font-medium">Total Load</p>
+                        </div>
+                    </div>
+                    
+                    <div class="h-3 w-full bg-gray-100 rounded-full flex overflow-hidden mb-2" aria-hidden="true">
+                        <div class="bg-[#008489] w-[80%]" title="HVAC: 25 kW"></div>
+                        <div class="bg-[#222222] w-[20%]" title="Lighting & Other: 6 kW"></div>
+                    </div>
+                    <div class="flex gap-6 text-sm font-medium text-gray-700">
+                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-sm bg-[#008489]"></span> HVAC: 25 kW</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-sm bg-[#222222]"></span> Other: 6 kW</span>
+                    </div>
+                </div>
+
+                <div class="stat-grid bg-gray-50 rounded-xl p-5 border border-gray-100">
+                    <div>
+                        <div class="text-xs font-bold text-gray-600 uppercase tracking-widest mb-1">Internal Temp</div>
+                        <div class="text-xl font-semibold">23.2°C</div>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-gray-600 uppercase tracking-widest mb-1">Setpoint</div>
+                        <div class="text-xl font-semibold text-gray-500">22.0°C</div>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-gray-600 uppercase tracking-widest mb-1">Occupancy</div>
+                        <div class="text-xl font-semibold">300 <span class="text-sm text-gray-500 font-normal">/ 800</span></div>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-gray-600 uppercase tracking-widest mb-1">Floor Area</div>
+                        <div class="text-xl font-semibold">10,000 <span class="text-sm text-gray-500 font-normal">m²</span></div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <div class="text-xs font-bold text-gray-600 uppercase tracking-widest mb-1">Active Schedule</div>
+                        <div class="text-sm font-medium text-gray-800 mt-1">Pre-cooling initialized at 9:00 AM. Projected target achievement by 11:00 AM.</div>
+                    </div>
+                </div>
             </article>
 
-            <article class="card p-6 flex flex-col justify-between items-start gap-4 hover:shadow-lg transition-shadow duration-200">
-                <div class="w-full">
-                    <div class="flex justify-between items-start w-full">
-                        <h3 class="text-lg font-semibold">Warden Boys Hostel No. 6</h3>
-                        <span class="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded-full uppercase tracking-wide">Residential</span>
+            <article class="card p-6 md:p-8">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-100 pb-5 mb-6 gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="hidden sm:flex w-12 h-12 bg-gray-50 rounded-xl items-center justify-center border border-gray-200" aria-hidden="true">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-[#222222]">Warden Boys Hostel No. 6</h3>
+                            <p class="text-sm text-gray-600 font-medium mt-1">BLDG-02 • Campus Residence</p>
+                        </div>
                     </div>
-                    <p class="text-sm text-gray-700 mt-2 line-clamp-2">Campus residence. HVAC system currently idling. Preparing for evening peak demand load.</p>
+                    <span class="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-bold rounded-md uppercase tracking-wider">Residential</span>
                 </div>
-                <button class="mt-2 px-5 py-2.5 bg-[#222222] text-white text-sm font-semibold rounded-lg hover:bg-black transition-colors w-full md:w-auto" aria-label="View detailed metrics for Warden Boys Hostel No. 6">
-                    View Metrics
-                </button>
-            </article>
-        </section>
 
+                <div class="mb-8">
+                    <div class="flex justify-between items-end mb-2">
+                        <div>
+                            <span class="text-xs font-bold text-gray-700 uppercase tracking-widest block mb-1">Current Status</span>
+                            <span class="text-lg font-semibold text-gray-500 flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-gray-400" aria-hidden="true"></span> HVAC Idle
+                            </span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-3xl font-semibold tracking-tight">24 <span class="text-base text-gray-600 font-medium">kW</span></span>
+                            <p class="text-sm text-gray-600 font-medium">Total Load</p>
+                        </div>
+                    </div>
+                    
+                    <div class="h-3 w-full bg-gray-100 rounded-full flex overflow-hidden mb-2" aria-hidden="true">
+                        <div class="bg-gray-400 w-[83%]" title="HVAC Standby: 20 kW"></div>
+                        <div class="bg-[#222222] w-[17%]" title="Lighting & Other: 4 kW"></div>
+                    </div>
+                    <div class="flex gap-6 text-sm font-medium text-gray-700">
+                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-sm bg-gray-400"></span> Standby: 20 kW</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-sm bg-[#222222]"></span> Other: 4 kW</span>
+                    </div>
+                </div>
+
+                <div class="stat-grid bg-gray-50 rounded-xl p-5 border border-gray-100">
+                    <div>
+                        <div class="text-xs font-bold text-gray-600 uppercase tracking-widest mb-1">Internal Temp</div>
+                        <div class="text-xl font-semibold">24.8°C</div>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-gray-600 uppercase tracking-widest mb-1">Setpoint</div>
+                        <div class="text-xl font-semibold text-gray-500">--</div>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-gray-600 uppercase tracking-widest mb-1">Occupancy</div>
+                        <div class="text-xl font-semibold">150 <span class="text-sm text-gray-500 font-normal">/ 240</span></div>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-gray-600 uppercase tracking-widest mb-1">Floor Area</div>
+                        <div class="text-xl font-semibold">8,000 <span class="text-sm text-gray-500 font-normal">m²</span></div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <div class="text-xs font-bold text-amber-700 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            Evening Peak Forecast
+                        </div>
+                        <div class="text-sm font-medium text-gray-800 mt-1">Projected load spike of 110 kW anticipated at 7:00 PM. Thermal mass charging recommended prior to 4:00 PM.</div>
+                    </div>
+                </div>
+            </article>
+
+        </section>
     </main>
 
     <script>
-        // --- 1. Accessible Digital Clock ---
+        // Live Clock Implementation
         function updateClock() {
             const now = new Date();
-            // Formats to locale time (e.g., "04:52:55 PM")
             const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             document.getElementById('live-clock').textContent = timeString;
         }
         setInterval(updateClock, 1000);
         updateClock();
-
-        // --- 2. Chart.js Implementation ---
-        const ctx = document.getElementById('thermalChart').getContext('2d');
-        const threshold = 60; // Renewable limit in kW
-        
-        // Ensure default font is readable
-        Chart.defaults.font.family = "'Inter', sans-serif";
-        Chart.defaults.font.size = 13;
-        Chart.defaults.color = '#717171'; // WCAG readable gray for chart text
-
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['08:00 AM', '10:00 AM', '12:00 PM', '02:00 PM', '04:00 PM', '06:00 PM', '08:00 PM'],
-                datasets: [
-                    {
-                        label: 'Power Usage (kW)',
-                        data: [35, 45, 85, 75, 40, 95, 55],
-                        borderColor: '#222222', // High contrast line
-                        borderWidth: 3,
-                        pointBackgroundColor: '#FFFFFF',
-                        pointBorderColor: '#222222',
-                        pointBorderWidth: 2,
-                        pointRadius: 4,
-                        pointHoverRadius: 6,
-                        tension: 0.4, // Smooth curve
-                        fill: {
-                            target: { value: threshold },
-                            above: 'rgba(220, 38, 38, 0.15)', // Light red fill (fossil)
-                            below: 'rgba(5, 150, 105, 0.15)'  // Light emerald fill (solar)
-                        }
-                    },
-                    {
-                        label: 'Renewable Threshold',
-                        data: Array(7).fill(threshold),
-                        borderColor: '#008489', // Airbnb teal accent
-                        borderDash: [6, 4],
-                        borderWidth: 2,
-                        pointRadius: 0, // Hide points for the threshold line
-                        fill: false
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { 
-                    legend: { display: false }, // Using custom accessible HTML legend above
-                    tooltip: {
-                        backgroundColor: '#222222',
-                        titleColor: '#FFFFFF',
-                        bodyColor: '#FFFFFF',
-                        padding: 10,
-                        cornerRadius: 8,
-                        displayColors: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: '#EBEBEB', drawBorder: false },
-                        ticks: { padding: 8 }
-                    },
-                    x: {
-                        grid: { display: false, drawBorder: false },
-                        ticks: { padding: 8 }
-                    }
-                },
-                interaction: {
-                    intersect: false,
-                    mode: 'index',
-                },
-            }
-        });
     </script>
 </body>
 </html>
