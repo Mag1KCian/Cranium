@@ -347,11 +347,11 @@
         </div>
         <div class="flex-1">
           <div class="mono text-xs text-slate-500 tracking-widest uppercase mb-1">Grid Status</div>
-          <div class="metric-value" style="color:#22c55e; text-shadow:0 0 12px rgba(34,197,94,0.4);">Stable</div>
-          <div class="mono text-xs text-slate-600 mt-1">Load: 68.4% capacity</div>
+          <div id="grid-status-value" class="metric-value" style="color:#22c55e; text-shadow:0 0 12px rgba(34,197,94,0.4);">Stable</div>
+          <div id="grid-status-sub" class="mono text-xs text-slate-600 mt-1">Load: 68.4% capacity</div>
         </div>
         <div class="flex items-center gap-1.5">
-          <div class="status-dot"></div>
+          <div id="grid-status-dot" class="status-dot"></div>
         </div>
       </div>
 
@@ -365,10 +365,10 @@
         </div>
         <div class="flex-1">
           <div class="mono text-xs text-slate-500 tracking-widest uppercase mb-1">Carbon Prevented</div>
-          <div class="metric-value neon-text">0 <span class="text-lg">kg</span></div>
-          <div class="mono text-xs text-slate-600 mt-1">Simulation not started</div>
+          <div id="carbon-value" class="metric-value neon-text">0 <span class="text-lg">kg</span></div>
+          <div id="carbon-sub" class="mono text-xs text-slate-600 mt-1">Simulation not started</div>
         </div>
-        <div class="self-start mono text-xs text-amber-400 border border-amber-900 px-2 py-0.5 rounded-sm bg-amber-950/40">STANDBY</div>
+        <div id="carbon-badge" class="self-start mono text-xs text-amber-400 border border-amber-900 px-2 py-0.5 rounded-sm bg-amber-950/40">STANDBY</div>
       </div>
     </div>
 
@@ -441,9 +441,9 @@
               <h2 class="text-lg font-bold tracking-wide text-slate-100" style="font-family:'Rajdhani',sans-serif; font-size:1.2rem;">UIET Academic Block</h2>
               <div class="mono text-xs text-slate-500 mt-0.5">Panjab University, Sector 25, Chandigarh</div>
             </div>
-            <div class="flex items-center gap-2 border border-amber-800/50 bg-amber-950/30 px-2.5 py-1 rounded-sm">
-              <div class="status-dot status-dot-idle w-2 h-2"></div>
-              <span class="mono text-xs text-amber-400 tracking-wider">HVAC Idle</span>
+            <div id="uiet-badge" class="flex items-center gap-2 border border-amber-800/50 bg-amber-950/30 px-2.5 py-1 rounded-sm">
+              <div id="uiet-dot" class="status-dot status-dot-idle w-2 h-2"></div>
+              <span id="uiet-status" class="mono text-xs text-amber-400 tracking-wider">HVAC Idle</span>
             </div>
           </div>
 
@@ -594,14 +594,14 @@
         <span class="hidden md:inline">BUILDINGS: <span class="neon-text">2 ACTIVE</span></span>
       </div>
       <div class="mono text-xs text-slate-600">
-        SIM STATUS: <span class="text-amber-400">AWAITING START</span>
+        SIM STATUS: <span id="sim-status-text" class="text-amber-400">AWAITING START</span>
       </div>
     </div>
 
     <!-- ─── RUN SIMULATION BUTTON ─── -->
     <div class="flex justify-center pt-2 pb-4">
-      <button class="run-btn rounded-sm relative" onclick="this.style.opacity='0.7'; setTimeout(()=>this.style.opacity='1',300)">
-        <span class="relative z-10">▶&nbsp;&nbsp;Run 12-Hour AI Simulation</span>
+      <button id="run-btn" class="run-btn rounded-sm relative">
+        <span id="run-btn-label" class="relative z-10">▶&nbsp;&nbsp;Run 12-Hour AI Simulation</span>
       </button>
     </div>
 
@@ -622,19 +622,215 @@
 </style>
 
 <script>
-    
-  // Live digital clock
-  function updateClock() {
-    const now = new Date();
-    let h = now.getHours();
-    const m = now.getMinutes().toString().padStart(2,'0');
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    h = h % 12 || 12;
+  // ── Live clock (paused during simulation) ──────────────────────────────────
+  let liveClockInterval = null;
+  let simRunning = false;
+
+  function renderClock(totalMinutes) {
+    const h24 = Math.floor(totalMinutes / 60) % 24;
+    const m   = totalMinutes % 60;
+    const ampm = h24 >= 12 ? 'PM' : 'AM';
+    const h12  = h24 % 12 || 12;
     document.getElementById('clock').innerHTML =
-      `${h}<span class="clock-colon">:</span>${m} <span class="text-base">${ampm}</span>`;
+      `${h12}<span class="clock-colon">:</span>${String(m).padStart(2,'0')} <span class="text-base">${ampm}</span>`;
   }
-  updateClock();
-  setInterval(updateClock, 1000);
+
+  function startLiveClock() {
+    liveClockInterval = setInterval(() => {
+      const now = new Date();
+      let h = now.getHours();
+      const m = now.getMinutes().toString().padStart(2,'0');
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      document.getElementById('clock').innerHTML =
+        `${h}<span class="clock-colon">:</span>${m} <span class="text-base">${ampm}</span>`;
+    }, 1000);
+  }
+
+  renderClock(8 * 60); // show 08:00 AM on load
+  startLiveClock();
+
+  // ── DOM refs ───────────────────────────────────────────────────────────────
+  const elClock        = document.getElementById('clock');
+  const elUietBadge    = document.getElementById('uiet-badge');
+  const elUietDot      = document.getElementById('uiet-dot');
+  const elUietStatus   = document.getElementById('uiet-status');
+  const elGridValue    = document.getElementById('grid-status-value');
+  const elGridSub      = document.getElementById('grid-status-sub');
+  const elGridDot      = document.getElementById('grid-status-dot');
+  const elCarbonValue  = document.getElementById('carbon-value');
+  const elCarbonSub    = document.getElementById('carbon-sub');
+  const elCarbonBadge  = document.getElementById('carbon-badge');
+  const elSimStatus    = document.getElementById('sim-status-text');
+  const elRunBtn       = document.getElementById('run-btn');
+  const elRunLabel     = document.getElementById('run-btn-label');
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  let carbonKg = 0;
+  let carbonInterval = null;
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  function setUietState(text, colorClass, dotClass, borderClass, bgClass) {
+    elUietStatus.textContent = text;
+    elUietStatus.className = `mono text-xs tracking-wider ${colorClass}`;
+    elUietDot.className    = `w-2 h-2 ${dotClass}`;
+    elUietBadge.className  = `flex items-center gap-2 border ${borderClass} ${bgClass} px-2.5 py-1 rounded-sm`;
+  }
+
+  function setGridState(text, color, shadow, subText, dotStyle) {
+    elGridValue.textContent = text;
+    elGridValue.style.cssText = `color:${color}; text-shadow:${shadow};`;
+    elGridSub.textContent = subText;
+    elGridDot.style.cssText = dotStyle;
+  }
+
+  function setCarbonCounter(running) {
+    if (running && !carbonInterval) {
+      // Ramp: starts at ~3 kg/s, accelerates slightly to simulate peak load
+      let rate = 3.0;
+      carbonInterval = setInterval(() => {
+        rate = Math.min(rate + 0.05, 7.5);       // accelerate to ~7.5 kg/s cap
+        carbonKg += rate;
+        const display = carbonKg >= 1000
+          ? `${(carbonKg / 1000).toFixed(2)} <span class="text-lg">t</span>`
+          : `${Math.round(carbonKg)} <span class="text-lg">kg</span>`;
+        elCarbonValue.innerHTML = display;
+        elCarbonSub.textContent = `↑ Actively saving during peak hours`;
+      }, 100);
+
+      elCarbonBadge.textContent  = 'ACTIVE';
+      elCarbonBadge.className    = 'self-start mono text-xs text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded-sm bg-emerald-950/40';
+    }
+  }
+
+  function addFlashOverlay(el, color) {
+    el.style.transition = 'box-shadow 0.3s';
+    el.style.boxShadow = `0 0 24px ${color}`;
+    setTimeout(() => { el.style.boxShadow = ''; }, 800);
+  }
+
+  // ── Phase triggers (keyed by simulated hour) ───────────────────────────────
+  // totalMinutes = minutes since midnight
+
+  function applyPhase(totalMinutes) {
+    const hour = Math.floor(totalMinutes / 60);
+    const min  = totalMinutes % 60;
+
+    // 10:00 AM — PRE-COOLING (Solar Surplus)
+    if (hour === 10 && min === 0) {
+      setUietState(
+        'PRE-COOLING (Solar Surplus)',
+        'text-sky-400',
+        'status-dot',  // green pulse → switch to blue
+        'border-sky-800/50',
+        'bg-sky-950/30'
+      );
+      elUietDot.style.cssText =
+        'width:8px;height:8px;border-radius:50%;background:#38bdf8;box-shadow:0 0 8px #38bdf8,0 0 16px rgba(56,189,248,0.4);animation:pulse-dot 2.5s ease-in-out infinite;';
+      elSimStatus.textContent = 'PRE-COOLING PHASE';
+      elSimStatus.className = 'text-sky-400';
+      addFlashOverlay(elUietBadge, 'rgba(56,189,248,0.4)');
+    }
+
+    // 14:00 (2:00 PM) — CRITICAL PEAK + COASTING
+    if (hour === 14 && min === 0) {
+      // Grid → CRITICAL PEAK
+      setGridState(
+        'CRITICAL PEAK',
+        '#f87171',
+        '0 0 14px rgba(248,113,113,0.5)',
+        'Load: 97.1% capacity — Peak alert',
+        'width:8px;height:8px;border-radius:50%;background:#f87171;box-shadow:0 0 8px #f87171,0 0 16px rgba(248,113,113,0.5);animation:pulse-dot 1s ease-in-out infinite;'
+      );
+      addFlashOverlay(elGridValue, 'rgba(248,113,113,0.4)');
+
+      // UIET → COASTING (Zero Emissions)
+      setUietState(
+        'COASTING (Zero Emissions)',
+        'text-emerald-400',
+        'status-dot',
+        'border-emerald-800/50',
+        'bg-emerald-950/30'
+      );
+      elUietDot.style.cssText =
+        'width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e,0 0 16px rgba(34,197,94,0.4);animation:pulse-dot 2.5s ease-in-out infinite;';
+      addFlashOverlay(elUietBadge, 'rgba(34,197,94,0.4)');
+
+      // Carbon counter starts
+      setCarbonCounter(true);
+
+      elSimStatus.textContent = 'CRITICAL PEAK — COASTING ACTIVE';
+      elSimStatus.className = 'text-red-400';
+    }
+
+    // 18:00 (6:00 PM) — Simulation complete
+    if (hour === 18 && min === 0) {
+      elSimStatus.textContent = 'SIMULATION COMPLETE';
+      elSimStatus.className = 'text-emerald-400';
+      elRunLabel.textContent = '✓  Simulation Complete';
+      elRunBtn.disabled = true;
+      elRunBtn.style.opacity = '0.5';
+      elRunBtn.style.cursor = 'default';
+    }
+  }
+
+  // ── Main simulation runner ─────────────────────────────────────────────────
+  // Simulate 08:00 → 18:00 = 600 minutes over 10 000ms → 60min per second
+  // Tick every 50ms → advances 3 minutes per tick
+
+  function runSimulation() {
+    if (simRunning) return;
+    simRunning = true;
+
+    // Stop live clock
+    clearInterval(liveClockInterval);
+
+    // Update button
+    elRunLabel.textContent = '⏳  Simulation Running…';
+    elRunBtn.disabled = true;
+    elRunBtn.style.opacity = '0.6';
+    elRunBtn.style.cursor  = 'not-allowed';
+
+    // Update sim status
+    elSimStatus.textContent = 'RUNNING';
+    elSimStatus.className   = 'text-sky-400';
+
+    const SIM_START_MIN = 8 * 60;   // 480
+    const SIM_END_MIN   = 18 * 60;  // 1080
+    const TOTAL_SIM_MIN = SIM_END_MIN - SIM_START_MIN; // 600
+    const DURATION_MS   = 10000;    // 10 seconds wall time
+    const TICK_MS       = 50;       // update every 50ms
+    const TICKS         = DURATION_MS / TICK_MS;       // 200 ticks
+    const MIN_PER_TICK  = TOTAL_SIM_MIN / TICKS;       // 3 min/tick
+
+    let currentMin = SIM_START_MIN;
+    let lastHour   = -1;
+
+    const simInterval = setInterval(() => {
+      currentMin += MIN_PER_TICK;
+
+      if (currentMin >= SIM_END_MIN) {
+        currentMin = SIM_END_MIN;
+        clearInterval(simInterval);
+      }
+
+      // Render clock
+      renderClock(Math.round(currentMin));
+
+      // Check for whole-hour phase triggers (run once per hour)
+      const currentHour = Math.floor(currentMin / 60);
+      const currentMod  = Math.round(currentMin) % 60;
+      if (currentHour !== lastHour && currentMod <= Math.ceil(MIN_PER_TICK)) {
+        lastHour = currentHour;
+        applyPhase(currentHour * 60); // fire at the exact hour boundary
+      }
+
+    }, TICK_MS);
+  }
+
+  // ── Bind button ────────────────────────────────────────────────────────────
+  elRunBtn.addEventListener('click', runSimulation);
 </script>
 
 </body>
