@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 // Mock data for rooms with high power consumption
 const mockRooms = [
@@ -75,9 +75,10 @@ const generateWattageData = () => {
     const time = new Date(now.getTime() - i * 60000);
     const baseWattage = 28000 + Math.sin(i / 5) * 3000;
     const noise = Math.random() * 2000 - 1000;
+    const total = Math.round(baseWattage + noise);
     data.push({
       time: time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      wattage: Math.round(baseWattage + noise),
+      wattage: total,
     });
   }
   return data;
@@ -197,9 +198,10 @@ function OperationsDashboard() {
         const newData = [...prev.slice(1)];
         const lastWattage = prev[prev.length - 1].wattage;
         const newWattage = lastWattage + (Math.random() * 1000 - 500);
+        const total = Math.round(newWattage);
         newData.push({
           time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-          wattage: Math.round(newWattage),
+          wattage: total,
         });
         return newData;
       });

@@ -107,6 +107,10 @@ def build_uiet_academic_block() -> Building:
 building = build_uiet_academic_block()
 active_connections: List[WebSocket] = []
 
+@app.get("/")
+async def health_check():
+    return {"status": "active", "message": "Project Thermal Grid Simulation API is running."}
+
 @app.websocket("/ws/power-data")
 async def power_data_websocket(websocket: WebSocket):
     await websocket.accept()
