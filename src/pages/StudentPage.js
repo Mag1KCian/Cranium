@@ -32,6 +32,7 @@ function StudentPage() {
   }, []);
 
   return (
+    <div style={styles.pageWrapper}>
     <div style={styles.container}>
       <div style={styles.header}>
         <div style={styles.headerLeft}>
@@ -118,15 +119,27 @@ function StudentPage() {
         </div>
       </div>
     </div>
+    </div>
   );
 }
 
 const styles = {
-  container: {
+  pageWrapper: {
+    backgroundColor: '#f1f5f9', // Clean off-white outer framing
+    padding: '32px',
     minHeight: '100vh',
-    backgroundColor: '#f7f7f7',
+    boxSizing: 'border-box',
+  },
+  container: {
+    backgroundColor: '#ffffff',
+    borderRadius: '24px',
+    padding: '40px',
+    maxWidth: '1280px',
+    margin: '0 auto',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.05)',
+    minHeight: 'calc(100vh - 64px)',
+    boxSizing: 'border-box',
     fontFamily: 'Inter, Arial, sans-serif',
-    padding: '20px',
   },
   header: {
     display: 'flex',

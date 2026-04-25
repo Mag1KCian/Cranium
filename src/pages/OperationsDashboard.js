@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area } from 'recharts';
 
@@ -60,11 +60,11 @@ const mockAlerts = [
   { id: 2, room: 'Room 205', component: 'Power Outlet B2', power: 4200, threshold: 5000, severity: 'warning' },
 ];
 
-// Mock chatbot messages
-const mockChatMessages = [
-  { id: 1, type: 'ai', text: 'System analysis complete. All HVAC units operating within normal parameters.' },
-  { id: 2, type: 'ai', text: 'Alert: Room 205 showing 15% above average power consumption. Recommend inspection.' },
-  { id: 3, type: 'ai', text: 'Pre-cooling schedule optimized for tomorrow. Expected 12% energy savings.' },
+// Recommended prompts for the chatbot
+const recommendedPrompts = [
+  "Status of Lab 301?",
+  "Reduce power in Room 205",
+  "Are there any active fire alerts?",
 ];
 
 // Generate real-time wattage data
@@ -91,6 +91,17 @@ function OperationsDashboard() {
   const [loading, setLoading] = useState(true);
   const [expandedRoom, setExpandedRoom] = useState(null);
   const [cameraStream, setCameraStream] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [roomsData, setRoomsData] = useState(mockRooms);
+  const [alertsData, setAlertsData] = useState(mockAlerts);
+  const chatEndRef = useRef(null);
+
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages, isTyping]);
 
   // Clock update
   useEffect(() => {
@@ -124,6 +135,36 @@ function OperationsDashboard() {
   // Toggle component dropdown
   const toggleComponents = (roomId) => {
     setExpandedRoom(expandedRoom === roomId ? null : roomId);
+  };
+
+  // Toggle component power cutoff
+  const toggleComponentPower = (roomId, componentName) => {
+    setRoomsData(prevData => prevData.map(room => {
+      if (room.id === roomId) {
+        const updatedComponents = room.components.map(comp => {
+          if (comp.name === componentName) {
+            return { ...comp, isOff: !comp.isOff };
+          }
+          return comp;
+        });
+        const newPower = updatedComponents.reduce((sum, c) => sum + (c.isOff ? 0 : c.power), 0);
+        let newStatus = 'normal';
+        if (newPower > 4500) newStatus = 'danger';
+        else if (newPower > 3500) newStatus = 'warning';
+        return { ...room, components: updatedComponents, power: newPower, status: newStatus };
+      }
+      return room;
+    }));
+  };
+
+  // Toggle alert power cutoff
+  const toggleAlertPower = (alertId) => {
+    setAlertsData(prev => prev.map(alert => {
+      if (alert.id === alertId) {
+        return { ...alert, isOff: !alert.isOff };
+      }
+      return alert;
+    }));
   };
 
   // Cleanup camera stream on unmount
@@ -166,10 +207,74 @@ function OperationsDashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  // Handle Chatbot messages using Gemini API
+  const handleSendMessage = async () => {
+    if (!chatInput.trim()) return;
+
+    const newUserMsg = { id: Date.now(), type: 'user', text: chatInput };
+    setChatMessages(prev => [...prev, newUserMsg]);
+    setChatInput('');
+    setIsTyping(true);
+
+    // Prepare real-time context for the AI
+    const currentWattage = wattageData[wattageData.length - 1]?.wattage || 0;
+    const currentTemp = weatherData?.external_temp || 'Unknown';
+    const preCooling = weatherData?.pre_cooling ? 'Active' : 'Inactive';
+    const activeAlerts = alertsData.length > 0 
+      ? alertsData.map(a => `${a.room}: ${a.component} at ${a.isOff ? 0 : a.power}W (${a.severity})`).join('; ') 
+      : 'None';
+    const highRooms = roomsData.map(r => `${r.name} (${r.power}W)`).join(', ');
+
+    const systemInstructionText = `You are an Operations AI Chatbot for a building's thermal grid management system. Provide concise, helpful answers. Use plain text without markdown formatting.
+
+Current Real-Time System Data:
+- Total Building Load: ${currentWattage} W
+- External Temperature: ${currentTemp}°C
+- Pre-cooling Status: ${preCooling}
+- Active Fire/Safety Alerts: ${activeAlerts}
+- Monitored Rooms: ${highRooms}
+
+Use this data to answer the user's questions accurately as if you are monitoring the live system.`;
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyCJwKQHEsAIygLbhs6Ru5Mvh-jdawD4_jQ`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          systemInstruction: {
+            parts: [{ text: systemInstructionText }]
+          },
+          contents: [{ role: "user", parts: [{ text: chatInput }] }] 
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Failed to fetch response from Gemini');
+      }
+
+      if (data.candidates && data.candidates.length > 0) {
+        const aiText = data.candidates[0].content.parts[0].text;
+        const newAiMsg = { id: Date.now() + 1, type: 'ai', text: aiText };
+        setChatMessages(prev => [...prev, newAiMsg]);
+      } else {
+        throw new Error('No valid response from Gemini');
+      }
+    } catch (error) {
+      console.error("Gemini API Error:", error);
+      const errorMsg = { id: Date.now() + 1, type: 'ai', text: `Error: ${error.message}` };
+      setChatMessages(prev => [...prev, errorMsg]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
   const UPPER_THRESHOLD = 35000;
   const LOWER_THRESHOLD = 22000;
 
   return (
+    <div style={styles.pageWrapper}>
     <div style={styles.container}>
       {/* Header */}
       <header style={styles.header}>
@@ -226,7 +331,7 @@ function OperationsDashboard() {
                 <h2 style={styles.cardTitle}>High Power Consumption Rooms</h2>
               </div>
               <div style={styles.roomList}>
-                {mockRooms.map(room => (
+                {roomsData.map(room => (
                   <div key={room.id} style={styles.roomItem}>
                     <div style={styles.roomInfo}>
                       <span style={styles.roomName}>{room.name}</span>
@@ -257,8 +362,20 @@ function OperationsDashboard() {
                   <div style={styles.componentsDropdown}>
                     {room.components.map((comp, idx) => (
                       <div key={idx} style={styles.componentItem}>
-                        <span>{comp.name}</span>
-                        <span style={styles.componentPower}>{comp.power}W</span>
+                        <span style={{ color: comp.isOff ? '#94a3b8' : '#1e293b', textDecoration: comp.isOff ? 'line-through' : 'none' }}>
+                          {comp.name}
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{...styles.componentPower, color: comp.isOff ? '#94a3b8' : '#0d9488'}}>
+                            {comp.isOff ? 0 : comp.power}W
+                          </span>
+                          <button 
+                            style={{...styles.cutoffButton, backgroundColor: comp.isOff ? '#10b981' : '#dc2626'}}
+                            onClick={() => toggleComponentPower(room.id, comp.name)}
+                          >
+                            {comp.isOff ? 'Turn On' : 'Cutoff'}
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -273,20 +390,28 @@ function OperationsDashboard() {
               <div style={styles.cardHeader}>
                 <h2 style={styles.cardTitle}>Fire Hazard Alerts</h2>
               </div>
-              {mockAlerts.length > 0 ? (
+              {alertsData.length > 0 ? (
                 <div style={styles.alertList}>
-                  {mockAlerts.map(alert => (
+                  {alertsData.map(alert => (
                     <div key={alert.id} style={{
                       ...styles.alertItem,
-                      borderLeft: alert.severity === 'critical' ? '4px solid #dc2626' : '4px solid #f59e0b'
+                      borderLeft: alert.isOff ? '4px solid #10b981' : (alert.severity === 'critical' ? '4px solid #dc2626' : '4px solid #f59e0b')
                     }}>
                       <div style={styles.alertInfo}>
-                        <span style={styles.alertRoom}>{alert.room}</span>
-                        <span style={styles.alertComponent}>{alert.component}</span>
+                        <span style={{...styles.alertRoom, textDecoration: alert.isOff ? 'line-through' : 'none', color: alert.isOff ? '#94a3b8' : '#1e293b'}}>{alert.room}</span>
+                        <span style={{...styles.alertComponent, textDecoration: alert.isOff ? 'line-through' : 'none'}}>{alert.component}</span>
                       </div>
-                      <div style={styles.alertPower}>
-                        <span style={{color: '#dc2626', fontWeight: '700'}}>{alert.power}W</span>
-                        <span style={styles.alertThreshold}>/ {alert.threshold}W threshold</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={styles.alertPower}>
+                          <span style={{color: alert.isOff ? '#94a3b8' : '#dc2626', fontWeight: '700'}}>{alert.isOff ? 0 : alert.power}W</span>
+                          <span style={styles.alertThreshold}>/ {alert.threshold}W threshold</span>
+                        </div>
+                        <button 
+                          style={{...styles.cutoffButton, backgroundColor: alert.isOff ? '#10b981' : '#dc2626'}}
+                          onClick={() => toggleAlertPower(alert.id)}
+                        >
+                          {alert.isOff ? 'Turn On' : 'Cutoff'}
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -356,34 +481,95 @@ function OperationsDashboard() {
 
           {/* Right Column - Chatbot */}
           <div style={styles.rightColumn}>
+            {/* Appliance Condition Summary Box */}
+            <div style={styles.summaryCard}>
+              <div style={{...styles.cardHeader, borderBottom: '1px solid #fde68a', marginBottom: '12px', paddingBottom: '8px'}}>
+                <h2 style={{...styles.cardTitle, color: '#b45309'}}>Appliance Condition Summary</h2>
+              </div>
+              <div style={styles.summaryText}>
+                <div style={{marginBottom: '8px'}}><strong>⚠️ System AI Assessment:</strong></div>
+                {alertsData.length > 0 ? alertsData.map(alert => (
+                  <div key={alert.id} style={{marginBottom: '6px'}}>
+                    • <strong>{alert.room} ({alert.component}):</strong> Power draw at {alert.isOff ? 0 : alert.power}W {alert.isOff ? 'has been cut off.' : (alert.severity === 'critical' ? 'exceeds safe limit. Immediate shutdown recommended to prevent fire hazard.' : 'is elevated. Inspect connected devices.')}
+                  </div>
+                )) : (
+                  <div style={{marginBottom: '6px'}}>• All appliances are operating safely.</div>
+                )}
+                <div style={{marginTop: '8px'}}>• <strong>Overall Status:</strong> Other tracked HVAC and lighting systems are within normal parameters.</div>
+              </div>
+            </div>
+
             <div style={styles.card}>
               <div style={styles.cardHeader}>
                 <h2 style={styles.cardTitle}>Operations AI Chatbot</h2>
               </div>
               <div style={styles.chatContainer}>
-                {mockChatMessages.map(msg => (
-                  <div key={msg.id} style={styles.chatMessage}>
-                    <div style={styles.chatIcon}>AI</div>
+                {chatMessages.map(msg => (
+                  <div key={msg.id} style={{...styles.chatMessage, backgroundColor: msg.type === 'user' ? '#f1f5f9' : '#f8fafc'}}>
+                    <div style={{...styles.chatIcon, backgroundColor: msg.type === 'user' ? '#0d9488' : '#7c3aed'}}>
+                      {msg.type === 'user' ? 'U' : 'AI'}
+                    </div>
                     <div style={styles.chatText}>{msg.text}</div>
                   </div>
                 ))}
+                {isTyping && (
+                  <div style={styles.chatMessage}>
+                    <div style={styles.chatIcon}>AI</div>
+                    <div style={styles.chatText}>Typing...</div>
+                  </div>
+                )}
+              <div ref={chatEndRef} />
               </div>
+              
+              <div style={styles.promptContainer}>
+                {recommendedPrompts.map((prompt, idx) => (
+                  <button 
+                    key={idx} 
+                    style={styles.promptPill}
+                    onClick={() => setChatInput(prompt)}
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+
               <div style={styles.chatInput}>
-                <input type="text" placeholder="Ask about operations..." style={styles.input} />
-                <button style={styles.sendButton}>Send</button>
+                <input 
+                  type="text" 
+                  placeholder="Ask about operations..." 
+                  style={styles.input} 
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                />
+                <button style={styles.sendButton} onClick={handleSendMessage} disabled={isTyping}>
+                  {isTyping ? '...' : 'Send'}
+                </button>
               </div>
             </div>
           </div>
         </div>
       </main>
     </div>
+    </div>
   );
 }
 
 const styles = {
-  container: {
+  pageWrapper: {
+    backgroundColor: '#f1f5f9', // Clean off-white outer framing
+    padding: '32px',
     minHeight: '100vh',
-    backgroundColor: '#F8FAFC',
+    boxSizing: 'border-box',
+  },
+  container: {
+    backgroundColor: '#f8fafc',
+    borderRadius: '24px',
+    maxWidth: '1600px',
+    margin: '0 auto',
+    overflow: 'hidden',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.05)',
+    minHeight: 'calc(100vh - 64px)',
     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
   },
   header: {
@@ -583,6 +769,15 @@ const styles = {
     fontWeight: '600',
     color: '#0d9488',
   },
+  cutoffButton: {
+    padding: '4px 8px',
+    border: 'none',
+    borderRadius: '4px',
+    fontSize: '10px',
+    fontWeight: 'bold',
+    color: '#fff',
+    cursor: 'pointer',
+  },
   alertList: {
     display: 'flex',
     flexDirection: 'column',
@@ -707,6 +902,18 @@ const styles = {
     borderRadius: '2px',
     marginRight: '6px',
   },
+  summaryCard: {
+    backgroundColor: '#fffbeb',
+    borderRadius: '12px',
+    padding: '20px',
+    boxShadow: '0 2px 8px rgba(245, 158, 11, 0.15)',
+    border: '1px solid #fcd34d',
+  },
+  summaryText: {
+    fontSize: '13px',
+    color: '#92400e',
+    lineHeight: '1.5',
+  },
   chatContainer: {
     display: 'flex',
     flexDirection: 'column',
@@ -739,6 +946,21 @@ const styles = {
     fontSize: '13px',
     color: '#1e293b',
     lineHeight: '1.5',
+  },
+  promptContainer: {
+    display: 'flex',
+    gap: '8px',
+    flexWrap: 'wrap',
+    marginTop: '12px',
+  },
+  promptPill: {
+    padding: '6px 12px',
+    backgroundColor: '#f1f5f9',
+    border: '1px solid #e2e8f0',
+    borderRadius: '16px',
+    fontSize: '12px',
+    color: '#475569',
+    cursor: 'pointer',
   },
   chatInput: {
     display: 'flex',
